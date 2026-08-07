@@ -114,8 +114,9 @@
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.ManagedUIElement.onClose" />
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.InventoryDisplay.onDisplayDoubleClicked" />
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.SlotDisplay.onSlotDisplayDoubleClicked" />
+        <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.ItemUIUtilities.OnSelectionChanged" />
+        <DoNotPublicize Include="TeamSoda.Duckov.Core:UIInputManager.OnCancel" />
         <DoNotPublicize Include="Plugins:InputIndicator.OnAfterRefresh" />
         <DoNotPublicize Include="ItemStatsSystem:ItemStatsSystem.Items.Slot.onSlotContentChanged" />
-        <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.ItemUIUtilities.OnSelectionChanged" />
     </ItemGroup>
 </Project>

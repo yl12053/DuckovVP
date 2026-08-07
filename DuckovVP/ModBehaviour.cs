@@ -7,6 +7,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Duckov.MiniGames;
 using Duckov.UI;
+using DuckovVP.Blocks;
 using DuckovVP.Console;
 using DuckovVP.Views;
 using FeatherMod;
@@ -109,6 +110,8 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
             }
         }).AsTask().GetAwaiter().GetResult();
 
+        BlockUtils.Init();
+        
         ItemUtils.Init();
         GamingConsoleUtils.Init();
     }
