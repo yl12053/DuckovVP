@@ -12,6 +12,7 @@ using DuckovVP.Views;
 using FeatherMod;
 using FeatherMod.Events;
 using FeatherMod.Events.GameEvents;
+using FeatherMod.Utils;
 using HarmonyLib;
 using LibVLCSharp.Shared;
 using ModSetting;
@@ -71,6 +72,7 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
         Instance = this;
         isActivated = true;
 
+        ModPathResolver.Register(GetModid(), Assembly.GetExecutingAssembly().Location);
         I18n.InitI18n(GetModid());
         var settingsBuilder = SettingsBuilder.Create(info);
         _config = new Config(settingsBuilder);

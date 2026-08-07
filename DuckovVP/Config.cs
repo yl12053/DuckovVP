@@ -1,4 +1,6 @@
-﻿using ModSetting.Api;
+﻿using System;
+using ModSetting.Api;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace DuckovVP;
@@ -42,27 +44,61 @@ public class Config
         RefreshUI();
     }
 
+    public event Action<string, KeyCode> Announce; 
+
     public void RefreshUI()
     {
         _settingsBuilder?.Clear((s) =>
         {
             _settingsBuilder
                 .AddKeybinding(nameof(SkipBackward), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(SkipBackward)}"),
-                    SkipBackward, Default.SkipBackward, (k) => SkipBackward = k)
+                    SkipBackward, Default.SkipBackward, (k) =>
+                    {
+                        SkipBackward = k;
+                        Announce("SkipBackward", k);
+                    })
                 .AddKeybinding(nameof(SkipForward), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(SkipForward)}"),
-                    SkipForward, Default.SkipForward, (k) => SkipForward = k)
+                    SkipForward, Default.SkipForward, (k) =>
+                    {
+                        SkipForward = k;
+                        Announce("SkipForward", k);
+                    })
                 .AddKeybinding(nameof(VolumeUp), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(VolumeUp)}"), VolumeUp,
-                    Default.VolumeUp, (k) => VolumeUp = k)
+                    Default.VolumeUp, (k) =>
+                    {
+                        VolumeUp = k;
+                        Announce("VolumeUp", k);
+                    })
                 .AddKeybinding(nameof(VolumeDown), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(VolumeDown)}"),
-                    VolumeDown, Default.VolumeDown, (k) => VolumeDown = k)
+                    VolumeDown, Default.VolumeDown, (k) =>
+                    {
+                        VolumeDown = k;
+                        Announce("VolumeDown", k);
+                    })
                 .AddKeybinding(nameof(Pause), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(Pause)}"), Pause,
-                    Default.Pause, (k) => Pause = k)
+                    Default.Pause, (k) =>
+                    {
+                        Pause = k;
+                        Announce("Pause", k);
+                    })
                 .AddKeybinding(nameof(ToStart), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(ToStart)}"), ToStart,
-                    Default.ToStart, (k) => ToStart = k)
+                    Default.ToStart, (k) =>
+                    {
+                        ToStart = k;
+                        Announce("ToStart", k);
+                    })
                 .AddKeybinding(nameof(Mute), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(Mute)}"), Mute,
-                    Default.Mute, (k) => Mute = k)
+                    Default.Mute, (k) =>
+                    {
+                        Mute = k;
+                        Announce("Mute", k);
+                    })
                 .AddKeybinding(nameof(SwitchStretch), ModBehaviour.GetName($"DuckovVP.gui.key.{nameof(SwitchStretch)}"), SwitchStretch,
-                    Default.SwitchStretch, (k) => SwitchStretch = k);
+                    Default.SwitchStretch, (k) =>
+                    {
+                        SwitchStretch = k;
+                        Announce("SwitchStretch", k);
+                    });
         });
     }
 }

@@ -37,6 +37,8 @@ public class PlayerBehaviour: MiniGameBehaviour
     
     private Transform disp;
     private bool isAudio;
+    private bool oldIsAudio;
+    private bool parsed = false;
 
     private Texture2D? AlbumTexture;
     
@@ -222,6 +224,20 @@ public class PlayerBehaviour: MiniGameBehaviour
             var oldpos = IndicatorTransform.localPosition;
             oldpos.x = 341.6f * mediaPlayer.Position - 170.8f;
             IndicatorTransform.localPosition = oldpos;
+        }
+
+        if (mediaPlayer != null && parsed)
+        {
+            isAudio = mediaPlayer.VideoTrackCount == 0;
+            if (isAudio != oldIsAudio) executionQueue.Enqueue(() =>
+            {
+                renderer.enabled = !isAudio;
+                TimeLineRenderer.enabled = isAudio;
+                TimeLineRenderer2.enabled = isAudio;
+                IndicatorRenderer.enabled = isAudio;
+                IndicatorRenderer2.enabled = isAudio;
+                oldIsAudio = isAudio;
+            });
         }
 
         if (isSwitching) return;
@@ -561,7 +577,7 @@ public class PlayerBehaviour: MiniGameBehaviour
     {
         if (currentPlay != null) ModBehaviour.Instance.Enqueue(async UniTask () =>
         {
-            var parsed = false;
+            parsed = false;
             if (mediaPlayer != null) mediaPlayer.Dispose();
             if (media != null) media.Dispose();
             media = new Media(ModBehaviour.vlc, new Uri(currentPlay).AbsoluteUri, FromType.FromLocation);
@@ -661,19 +677,17 @@ public class PlayerBehaviour: MiniGameBehaviour
             {
                 if (!parsed)
                 {
-                    parsed = true;
                     isAudio = mediaPlayer.VideoTrackCount == 0;
-                    if (isAudio)
+                    oldIsAudio = isAudio;
+                    executionQueue.Enqueue(() =>
                     {
-                        executionQueue.Enqueue(() =>
-                        {
-                            renderer.enabled = false;
-                            TimeLineRenderer.enabled = true;
-                            TimeLineRenderer2.enabled = true;
-                            IndicatorRenderer.enabled = true;
-                            IndicatorRenderer2.enabled = true;
-                        });
-                    }
+                        renderer.enabled = !isAudio;
+                        TimeLineRenderer.enabled = isAudio;
+                        TimeLineRenderer2.enabled = isAudio;
+                        IndicatorRenderer.enabled = isAudio;
+                        IndicatorRenderer2.enabled = isAudio;
+                        parsed = true;
+                    });
                 }
                 if (Interlocked.CompareExchange(ref _needDoublePause, 0, 1) == 1)
                 {

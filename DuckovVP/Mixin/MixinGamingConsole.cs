@@ -1,5 +1,8 @@
-﻿using Duckov.MiniGames;
+﻿using System.Collections.Generic;
+using System.Reflection.Emit;
+using Duckov.MiniGames;
 using DuckovVP.Console;
+using DuckovVP.Views;
 using FeatherMod.Minigame;
 using FeatherMod.Utils;
 using HarmonyLib;
@@ -33,4 +36,6 @@ public class MixinGamingConsole
         Debug.Log($"Passed, is result null? ${__result == null}");
         return false;
     }
+
+
 }

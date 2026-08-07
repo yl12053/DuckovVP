@@ -107,12 +107,14 @@
         <Publicize Include="TeamSoda.Duckov.Core" IncludeVirtualMembers="false" />
         <Publicize Include="SodaLocalization" IncludeVirtualMembers="false" />
         <Publicize Include="TeamSoda.Duckov.Utilities" IncludeVirtualMembers="false" />
+        <Publicize Include="Plugins" IncludeVirtualMembers="false" />
         <Publicize Include="ItemStatsSystem" IncludeVirtualMembers="false" />
         <Publicize Include="LibVLCSharp" IncludeVirtualMembers="false" />
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.MiniGames.GamingConsole.OnGamingConsoleInteractChanged" />
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.ManagedUIElement.onClose" />
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.InventoryDisplay.onDisplayDoubleClicked" />
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.SlotDisplay.onSlotDisplayDoubleClicked" />
+        <DoNotPublicize Include="Plugins:InputIndicator.OnAfterRefresh" />
         <DoNotPublicize Include="ItemStatsSystem:ItemStatsSystem.Items.Slot.onSlotContentChanged" />
         <DoNotPublicize Include="TeamSoda.Duckov.Core:Duckov.UI.ItemUIUtilities.OnSelectionChanged" />
     </ItemGroup>

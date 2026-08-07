@@ -9,6 +9,7 @@ using Duckov.UI.Animations;
 using FeatherMod.Utils;
 using ItemStatsSystem;
 using ItemStatsSystem.Items;
+using SodaCraft.Localizations;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -115,6 +116,7 @@ public class BurnerView: View
         registerSlotDisplay.Setup(KeySlot);
 
         inputField.text = "";
+        inputField.interactable = false;
         doneButton.interactable = false;
         RegisterEvents();
     }
@@ -263,5 +265,6 @@ public class BurnerView: View
         var item = KeySlot?.Content;
         if (item == null) return;
         item.GetVariableEntry("Path").SetString("DuckovVPRaw:" + inputField.text);
+        NotificationText.Push("gui.duckovVP.successWrite".ToPlainText());
     }
 }

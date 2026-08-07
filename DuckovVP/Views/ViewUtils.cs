@@ -1,4 +1,7 @@
-﻿using Duckov.ItemBuilders;
+﻿using System;
+using System.Collections.Generic;
+using Duckov.ItemBuilders;
+using Duckov.MiniGames;
 using Duckov.UI;
 using Duckov.UI.Animations;
 using Duckov.Utilities;
@@ -10,8 +13,10 @@ using SodaCraft.Localizations;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.UI.ProceduralImage;
+using Object = UnityEngine.Object;
 
 namespace DuckovVP.Views;
 
@@ -19,7 +24,9 @@ public class ViewUtils
 {
     public static BurnerView burnerView;
 
-    private static T? FindType<T>(string name) where T: UnityEngine.Object
+    public static GamingConsoleHUD? ExtraHUD = null;
+    
+    private static T? FindType<T>(string name) where T: Object
     {
         T? res = null;
         foreach (var tex in Resources.FindObjectsOfTypeAll<T>())
@@ -132,6 +139,67 @@ public class ViewUtils
 
         return field;
     }
+
+    private static InputActionMap _map;
+    private static Dictionary<string, InputActionReference> refMap = new();
+    public static InputActionMap map {
+        get
+        {
+            if (_map == null)
+            {
+                var assets = PlayerInput.all[0].actions;
+                assets.Disable();
+                try
+                {
+                    _map = new("DuckovVP");
+                    assets.AddActionMap(_map);
+                }
+                finally
+                {
+                    assets.Enable();
+                }
+            }
+
+            return _map;
+        }
+    }
+    public static InputActionReference CreateKeyActionReference(string name, KeyCode targetKey)
+    {
+        InputActionReference actionReference;
+        map.asset.Disable();
+        try
+        {
+            var action = map.AddAction(name, InputActionType.Button);
+            var bindingPath = ConversionUtils.KeyCodeToKey(targetKey);
+            action.AddBinding(bindingPath, groups: "Keyboard&Mouse");
+
+            map.Enable();
+            actionReference = InputActionReference.Create(action);
+
+            Debug.Log(
+                $"Creating: {actionReference.action.bindings[0].ToDisplayString(out _, out _, InputBinding.DisplayStringOptions.IgnoreBindingOverrides)}");
+        }
+        finally
+        {
+            map.asset.Enable();
+        }
+
+        return actionReference;
+    }
+
+    public static string? OverrideDisplay(string keyCode)
+    {
+        switch (keyCode)
+        {
+            case "Left Arrow": return "←";
+            case "Right Arrow": return "→";
+            case "Up Arrow": return "↑";
+            case "Down Arrow": return "↓";
+            case "Home": return "Home";
+        }
+
+        return null;
+    }
     
     public static void ViewsInit()
     {
@@ -166,6 +234,119 @@ public class ViewUtils
         }
 
         var canvas = LevelManager.Instance.transform.Find("GameplayUICanvas");
+        
+        var GamingConsoleHUDCopy = Object.Instantiate(GamingConsoleHUD.Instance, canvas, false);
+        ExtraHUD = GamingConsoleHUDCopy;
+        var HUDRect = GamingConsoleHUDCopy.GetComponent<RectTransform>();
+        HUDRect.offsetMax = HUDRect.offsetMin = Vector2.zero;
+        var HUDContent = GamingConsoleHUDCopy.transform.Find("Content");
+        Object.DestroyImmediate(HUDContent.Find("Start").gameObject);
+        Object.DestroyImmediate(HUDContent.Find("Select").gameObject);
+        Object.DestroyImmediate(HUDContent.Find("A").gameObject);
+        Object.DestroyImmediate(HUDContent.Find("B").gameObject);
+        var baseOnCopy = HUDContent.Find("Axis");
+        var wsad = baseOnCopy.Find("WSAD");
+        for (int i = 1; i <= 3; i++)
+        {
+            Object.DestroyImmediate(wsad.Find($"InputIndicator_{i}").gameObject);
+        }
+
+        var IndicatorTemplate = Object.Instantiate(wsad.Find("InputIndicator").GetComponent<InputIndicator>(), null);
+        Object.DestroyImmediate(wsad.Find("InputIndicator").gameObject);
+
+        void Create(string name, params (string, KeyCode, Func<Action<KeyCode>, Action>)[] keys)
+        {
+            var lr = Object.Instantiate(baseOnCopy, HUDContent, false);
+            var lrbase = lr.Find("WSAD");
+            foreach (var key in keys)
+            {
+                var elem = Object.Instantiate(IndicatorTemplate, lrbase, false);
+                var distList = elem.AddComponent<DestroyListener>();
+                distList.Destroy = () => { };
+                if (!refMap.TryGetValue(key.Item1, out var reference))
+                {
+                    reference = CreateKeyActionReference(key.Item1, key.Item2);
+                    var actionOnDest = key.Item3(key1 =>
+                    {
+                        var action = reference.action;
+                        action.Disable();
+                        try
+                        {
+                            action.Reset();
+                            action.AddBinding(ConversionUtils.KeyCodeToKey(key1), groups: "Keyboard&Mouse");
+                            elem.Refresh();
+                        }
+                        finally
+                        {
+                            action.Enable();
+                        }
+                    });
+                    distList.Destroy += actionOnDest;
+                    refMap.Add(key.Item1, reference);
+                }
+
+                Action<InputIndicator> onAfterRefreshIndi = (elems) =>
+                {
+                    if (elems == elem)
+                    {
+                        var rep = OverrideDisplay(elems.text.text);
+                        if (rep != null)
+                        {
+                            elems.text.text = rep;
+                            elems.ShowText();
+                        }
+                    }
+                };
+                InputIndicator.OnAfterRefresh += onAfterRefreshIndi;
+                distList.Destroy += () => InputIndicator.OnAfterRefresh -= onAfterRefreshIndi;
+                elem.Setup(reference, 0);
+            }
+            var textComp = lr.Find("Text (TMP)").GetComponent<TextMeshProUGUI>();
+            var loc = textComp.AddComponent<TextLocalizor>();
+            loc.Key = name;
+            loc.tmpText = textComp;
+        }
+
+        (string, KeyCode, Func<Action<KeyCode>, Action>) CreateTuple(string name, KeyCode value)
+        {
+            Func<Action<KeyCode>, Action> func = action =>
+            {
+                Action<string, KeyCode> wrapEvent = (key, code) =>
+                {
+                    if (key == name)
+                    {
+                        action(code);
+                    }
+                };
+                ModBehaviour.Instance.Cfg.Announce += wrapEvent;
+                return () => ModBehaviour.Instance.Cfg.Announce -= wrapEvent;
+            };
+            return (name, value, func);
+        }
+        
+        Create("gui.duckovVP.seek", 
+            CreateTuple("SkipBackward", ModBehaviour.Instance.Cfg.SkipBackward),
+            CreateTuple("SkipForward", ModBehaviour.Instance.Cfg.SkipForward)
+        );
+        Create("gui.duckovVP.vol", 
+            CreateTuple("VolumeUp", ModBehaviour.Instance.Cfg.VolumeUp), 
+            CreateTuple("VolumeDown", ModBehaviour.Instance.Cfg.VolumeDown)
+        );
+        Create("gui.duckovVP.pause", 
+            CreateTuple("Pause", ModBehaviour.Instance.Cfg.Pause) 
+        );
+        Create("gui.duckovVP.replay", 
+            CreateTuple("ToStart", ModBehaviour.Instance.Cfg.ToStart) 
+        );
+        Create("gui.duckovVP.mute", 
+            CreateTuple("Mute", ModBehaviour.Instance.Cfg.Mute) 
+        );
+        Create("gui.duckovVP.mode", 
+            CreateTuple("SwitchStretch", ModBehaviour.Instance.Cfg.SwitchStretch) 
+        );
+        
+        Object.DestroyImmediate(IndicatorTemplate.gameObject);
+        Object.DestroyImmediate(baseOnCopy.gameObject);
         
         var baseView = new GameObject("DuckovVP:Burner");
         baseView.SetActive(false);
@@ -234,15 +415,12 @@ public class ViewUtils
         var itemHolder = new GameObject("KeySlotItem");
         itemHolder.transform.SetParent(baseView.transform, false);
         itemHolder.AddComponent<RectTransform>();
-        // var slotCollection = itemHolder.AddComponent<SlotCollection>();
 
         var dummyItem = ItemBuilder.New()
             .Slot("CD",
                 FeatherMod.ItemUtils.GetTargetTag(TagLookup.GetNativeMayNotExist(new(ModBehaviour.MODID, "CD"))))
             .Instantiate();
         dummyItem.gameObject.transform.SetParent(itemHolder.transform);
-        // slotCollection.Add(dummyItem.Slots["CD"]);
-        // dummyItem.Slots["CD"].collection = slotCollection;
 
         var basesInteract = canvas.Find("MasterKeysRegisterView").Find("Content").Find("InteractionPanel");
         var interactPanel = Object.Instantiate(basesInteract.gameObject, contentElementGlob.transform, false);
@@ -251,6 +429,9 @@ public class ViewUtils
         interactPanel.transform.Find("SlotDisplay").GetComponentInChildren<SlotDisplay>().Target =
             dummyItem.Slots["CD"];
         var btnDone = interactPanel.transform.Find("BtnContainer").GetComponentInChildren<Button>();
+        var btnContainer = btnDone.gameObject;
+        btnContainer.AddComponent<ButtonAnimation>();
+        
         var interactRect = interactPanel.GetComponent<RectTransform>();
         interactRect.anchorMin = new(1, 0);
         interactRect.anchorMax = Vector2.one;
@@ -271,12 +452,14 @@ public class ViewUtils
         rectDesc.sizeDelta = new(0, 0);
         rectDesc.anchoredPosition = new(0, -100);
         var textDesc = fieldDesc.AddComponent<TextMeshProUGUI>();
-        textDesc.text = "abcd";
         textDesc.color = new(0xf8 / 255f, 0xf2 / 255f, 0xea / 255f, 1f);
         textDesc.horizontalAlignment = HorizontalAlignmentOptions.Center;
         textDesc.verticalAlignment = VerticalAlignmentOptions.Top;
         textDesc.fontSize = 14.7f;
         textDesc.fontStyle = FontStyles.Bold;
+        var fieldTranslator = fieldDesc.AddComponent<TextLocalizor>();
+        fieldTranslator.tmpText = textDesc;
+        fieldTranslator.Key = "gui.duckovVP.path";
         
         var viewBehaviour = baseView.AddComponent<BurnerView>();
         viewBehaviour.viewTabs = null;
