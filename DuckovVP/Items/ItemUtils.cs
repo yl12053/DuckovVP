@@ -30,10 +30,11 @@ public class ItemUtils
         dv.tags = new List<string>();
         dv.tags.Add("GamingConsole");
         dv.consts[ModBehaviour.MODID + "CustomGameCon"] = (true, false);
-        dv.slots["cd"] = new TagsDesc
+        dv.slots.Add(new()
         {
-            requiredTags = new List<Identifier>() { new(ModBehaviour.MODID, "CD") }
-        };
+            key = "cd",
+            requireTags = { new Identifier(ModBehaviour.MODID, "CD").ToString() }
+        });
         FeatherMod.ItemUtils.CreateCustomItem(new Identifier(ModBehaviour.MODID, "DuckovVP"), dv);
 
         ItemData dvd = new ItemData();

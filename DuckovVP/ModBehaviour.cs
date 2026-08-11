@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Duckov.MiniGames;
 using Duckov.UI;
@@ -25,6 +27,9 @@ namespace DuckovVP;
 
 public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
 {
+    public Parsers? _parsers;
+    public List<IParser> Parsers => _parsers?.parsers ?? new();
+    
     public static ModBehaviour? Instance { get; private set; }
     private Harmony? harmony;
     public static LibVLC? vlc { get; private set; }
@@ -69,6 +74,7 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
     protected override void OnAfterSetup()
     {
         base.OnAfterSetup();
+        _parsers = new();
         GamingConsole.OnGamingConsoleInteractChanged += Change;
         Instance = this;
         isActivated = true;
@@ -85,7 +91,7 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
             var localTasks = vlcTasks;
             while (isActivated)
             {
-                while (localTasks.TryDequeue(out var task)) task().GetAwaiter().GetResult();
+                while (localTasks.TryDequeue(out var task)) task().AsTask().GetAwaiter().GetResult();
             }
 
             GC.KeepAlive(this);
@@ -136,6 +142,12 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
 
         Setting.Clear();
 
+        if (_parsers != null)
+        {
+            _parsers.Dispose();
+            _parsers = null;
+        }
+        
         GamingConsole.OnGamingConsoleInteractChanged -= Change;
     }
 

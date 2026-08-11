@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DuckovVP", "DuckovVP\DuckovVP.csproj", "{8FA72831-43EA-4F8D-A847-3438D7C4DFD0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoutubeExplode", "YoutubeExplode\YoutubeExplode\YoutubeExplode.csproj", "{45AB5AF1-342E-4480-9B42-3C8FE1EF9FC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerKit", "PowerKit\PowerKit\PowerKit.csproj", "{D53F4490-B515-40EC-A523-389CDC2BFBA1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +16,13 @@ Global
 		{8FA72831-43EA-4F8D-A847-3438D7C4DFD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8FA72831-43EA-4F8D-A847-3438D7C4DFD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8FA72831-43EA-4F8D-A847-3438D7C4DFD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45AB5AF1-342E-4480-9B42-3C8FE1EF9FC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45AB5AF1-342E-4480-9B42-3C8FE1EF9FC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45AB5AF1-342E-4480-9B42-3C8FE1EF9FC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45AB5AF1-342E-4480-9B42-3C8FE1EF9FC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D53F4490-B515-40EC-A523-389CDC2BFBA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D53F4490-B515-40EC-A523-389CDC2BFBA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D53F4490-B515-40EC-A523-389CDC2BFBA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D53F4490-B515-40EC-A523-389CDC2BFBA1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

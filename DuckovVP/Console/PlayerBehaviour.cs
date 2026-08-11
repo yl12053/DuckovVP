@@ -34,6 +34,9 @@ public class PlayerBehaviour: MiniGameBehaviour
 
     private bool isPlaySuccess = false;
     private string? currentPlay;
+    private IParser? _parser = null;
+    private string[] parserResult = null;
+    private string[] parserMisc = null;
     
     private Transform disp;
     private bool isAudio;
@@ -580,78 +583,151 @@ public class PlayerBehaviour: MiniGameBehaviour
             parsed = false;
             if (mediaPlayer != null) mediaPlayer.Dispose();
             if (media != null) media.Dispose();
-            media = new Media(ModBehaviour.vlc, new Uri(currentPlay).AbsoluteUri, FromType.FromLocation);
-            media.ParsedChanged += (sender, e) =>
+
+            foreach (var parser in ModBehaviour.Instance.Parsers)
             {
-                if (e.ParsedStatus == MediaParsedStatus.Done)
+                if (parser.ShallIntercept(currentPlay))
                 {
-                    string? artworkUrl = media.Meta(MetadataType.ArtworkURL);
-                    if (!string.IsNullOrEmpty(artworkUrl))
+                    _parser = parser;
+                    bool hasError = true;
+                    if (parser.IsValid(currentPlay))
                     {
-                        var ct = this.GetCancellationTokenOnDestroy();
-                        async UniTask Task()
+                        try
                         {
-                            try
+                            var res = await parser.Parse(currentPlay, this.GetCancellationTokenOnDestroy());
+                            hasError = res == null;
+                            if (res != null)
                             {
-                                Uri uri = new(artworkUrl);
-                                byte[]? bytes = null;
-                                if (uri.IsFile)
+                                parserResult = new string[2];
+                                int ptr = 0;
+                                if (!string.IsNullOrEmpty(res[0]))
                                 {
-                                    string localPath = uri.LocalPath;
-                                    if (File.Exists(localPath))
-                                    {
-                                        bytes = await File.ReadAllBytesAsync(localPath, ct);
-                                    }
-                                    else
-                                    {
-                                        return;
-                                    }
-                                } else if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-                                {
-                                    var response = await _httpClient.GetAsync(uri, ct);
-                                    response.EnsureSuccessStatusCode();
-                                    bytes = await response.Content.ReadAsByteArrayAsync();
+                                    parserResult[ptr++] = res[0];
                                 }
-                                if (bytes == null) return;
-                                AlbumTexture = new(50, 50);
-                                AlbumTexture.LoadImage(bytes);
-                                AlbumRenderer.material.mainTexture = AlbumTexture;
-                            }
-                            catch (Exception se)
-                            {
-                                Debug.LogException(se);
+
+                                if (!string.IsNullOrEmpty(res[1]))
+                                {
+                                    parserResult[ptr++] = res[1];
+                                }
+
+                                for (; ptr <= 1; ptr++)
+                                {
+                                    parserResult[ptr] = "";
+                                }
                             }
                         }
-                        executionQueue.Enqueue(() =>
+                        catch (Exception e)
                         {
-                            StartCoroutine(Task().ToCoroutine());
-                        });
+                            Debug.LogException(e);
+                            hasError = true;
+                        }
                     }
 
-                    string? titleString = media.Meta(MetadataType.Title);
-                    if (!string.IsNullOrEmpty(artworkUrl))
+                    if (hasError)
                     {
-                        executionQueue.Enqueue(() =>
-                        {
-                            TextName.text = titleString;
-                            TextName.Restart();
-                        });
+                        isPlaySuccess = false;
+                        PM5544.enabled = true;
+                        return;
                     }
 
-                    string? artistString = media.Meta(MetadataType.Artist);
-                    if (string.IsNullOrEmpty(artistString)) artistString = media.Meta(MetadataType.AlbumArtist);
-                    if (!string.IsNullOrEmpty(artistString))
-                    {
-                        executionQueue.Enqueue(() =>
-                        {
-                            TextArtist.text = artistString;
-                            TextArtist.Restart();
-                        });
-                    }
+                    break;
                 }
-            };
+            }
+            
+            var _ct = this.GetCancellationTokenOnDestroy();
+            async UniTask Task(string? artworkUrl, CancellationToken ct)
+            {
+                try
+                {
+                    Uri uri = new(artworkUrl);
+                    byte[]? bytes = null;
+                    if (uri.IsFile)
+                    {
+                        string localPath = uri.LocalPath;
+                        if (File.Exists(localPath))
+                        {
+                            bytes = await File.ReadAllBytesAsync(localPath, ct);
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                    else if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                    {
+                        var response = await _httpClient.GetAsync(uri, ct);
+                        response.EnsureSuccessStatusCode();
+                        bytes = await response.Content.ReadAsByteArrayAsync();
+                    }
+
+                    if (bytes == null) return;
+                    AlbumTexture = new(50, 50);
+                    AlbumTexture.LoadImage(bytes);
+                    AlbumRenderer.material.mainTexture = AlbumTexture;
+                }
+                catch (Exception se)
+                {
+                    Debug.LogException(se);
+                }
+            }
+            
+            media = new Media(ModBehaviour.vlc, new Uri(_parser != null ? parserResult[0] : currentPlay).AbsoluteUri, FromType.FromLocation);
+            if (_parser != null)
+            {
+                async UniTask Task2(CancellationToken ct)
+                {
+                    if (_parser == null) return;
+                    parserMisc = await _parser.Info(currentPlay, ct);
+                    TextName.text = string.IsNullOrEmpty(parserMisc[0]) ? "Unnamed CD" : parserMisc[0];;
+                    TextName.Restart();
+                    TextArtist.text = string.IsNullOrEmpty(parserMisc[1]) ? "Unknown Artist" : parserMisc[1];
+                    TextArtist.Restart();
+                    await Task(parserMisc[2], ct);
+                }
+
+                StartCoroutine(Task2(_ct).ToCoroutine());
+            }
+            else
+            {
+                media.ParsedChanged += (sender, e) =>
+                {
+                    if (e.ParsedStatus == MediaParsedStatus.Done)
+                    {
+                        string? artworkUrl = media.Meta(MetadataType.ArtworkURL);
+                        if (!string.IsNullOrEmpty(artworkUrl))
+                        {
+                            executionQueue.Enqueue(() => { StartCoroutine(Task(artworkUrl, _ct).ToCoroutine()); });
+                        }
+
+                        string? titleString = media.Meta(MetadataType.Title);
+                        if (!string.IsNullOrEmpty(artworkUrl))
+                        {
+                            executionQueue.Enqueue(() =>
+                            {
+                                TextName.text = titleString;
+                                TextName.Restart();
+                            });
+                        }
+
+                        string? artistString = media.Meta(MetadataType.Artist);
+                        if (string.IsNullOrEmpty(artistString)) artistString = media.Meta(MetadataType.AlbumArtist);
+                        if (!string.IsNullOrEmpty(artistString))
+                        {
+                            executionQueue.Enqueue(() =>
+                            {
+                                TextArtist.text = artistString;
+                                TextArtist.Restart();
+                            });
+                        }
+                    }
+                };
+            }
             mediaPlayer = new MediaPlayer(ModBehaviour.vlc);
             mediaPlayer.Media = media;
+            if (_parser != null && !string.IsNullOrEmpty(parserResult[1]))
+            {
+                mediaPlayer.AddSlave(MediaSlaveType.Audio, new Uri(parserResult[1]).AbsoluteUri, true);
+            }
             mediaPlayer.SetVideoCallbacks(Lock, null, Display);
             mediaPlayer.SetVideoFormatCallbacks(fmtDelegate, VideoCleanup);
             mediaPlayer.SetAudioFormat("S16N", 44100, 2);

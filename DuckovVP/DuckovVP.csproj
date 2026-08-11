@@ -2,83 +2,7 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
         <Nullable>enable</Nullable>
-        <IsMac>false</IsMac>
-        <IsMac Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))'">true</IsMac>
-
-        <!-- DuckovPath 优先级 (Priority):
-             1. 环境变量 $(DUCKOV_PATH)（最优先，适合 CI / 多机器场景）
-             2. 用户自定义 props 文件 $(DuckovUserProps) 中的 DuckovPath
-             3. 本文件内硬编码路径（兜底） -->
-        <DuckovPath Condition="'$(DuckovPath)' == '' AND '$(DUCKOV_PATH)' != ''">$(DUCKOV_PATH)</DuckovPath>
-        <DuckovPath Condition="'$(DuckovPath)' == '' AND '$(IsMac)' != 'true'">E:\SteamLibrary\steamapps\common\Escape from Duckov</DuckovPath>
-
-        <!-- For Mac users, please fill the folder path which contains Duckov.app below -->
-        <!-- Mac 用户请在下面这行填写你的鸭科夫安装路径（包含 Duckov.app 的目录）-->
-        <DuckovPath Condition="'$(DuckovPath)' == '' AND '$(IsMac)'">/Users/Somebody/Library/Application Support/Steam/steamapps/common/Escape from Duckov</DuckovPath>
-
-        <SubPath>\Duckov_Data\Managed\</SubPath>
-        <SubPath Condition="'$(IsMac)'">/Duckov.app/Contents/Resources/Data/Managed/</SubPath>
-        <LangVersion>12.0</LangVersion>
-
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
-    <ItemGroup>
-        <Reference Include="$(DuckovPath)$(SubPath)TeamSoda.*">
-            <Private>False</Private>
-        </Reference>
-        <Reference Include="$(DuckovPath)$(SubPath)ItemStatsSystem.dll">
-            <Private>False</Private>
-        </Reference>
-        <Reference Include="$(DuckovPath)$(SubPath)Unity*">
-            <Private>False</Private>
-        </Reference>
-        <Reference Include="$(DuckovPath)$(SubPath)Newtonsoft.Json.dll">
-            <Private>False</Private>
-        </Reference>
-        <Reference Include="$(DuckovPath)$(SubPath)SodaLocalization.dll">
-            <Private>False</Private>
-        </Reference>
-        <Reference Include="$(DuckovPath)$(SubPath)ParadoxNotion.dll">
-            <Private>False</Private>
-        </Reference>
-        <Reference Include="$(DuckovPath)$(SubPath)UniTask*">
-            <Private>False</Private>
-        </Reference>
-
-        <Reference Include="$(DuckovPath)$(SubPath)Eflatun.SceneReference.dll">
-            <Private>False</Private>
-        </Reference>
-
-        <Reference Include="$(DuckovPath)$(SubPath)Plugins.dll">
-            <Private>False</Private>
-        </Reference>
-
-        <Reference Include="$(DuckovPath)$(SubPath)FMODUnity.dll">
-            <Private>False</Private>
-        </Reference>
-
-        <Reference Include="$(DuckovPath)$(SubPath)EasySave3.dll">
-            <Private>False</Private>
-        </Reference>
-
-        <Reference Include="$(DuckovPath)$(SubPath)LeTai.*.dll">
-            <Private>False</Private>
-        </Reference>
-
-        <Reference Include="$(DuckovPath)\..\..\workshop\content\3167020\3589088839\0Harmony.dll">
-            <Private>False</Private>
-        </Reference>
-        
-        <!-- <Reference Include="$(DuckovPath)\..\..\workshop\content\3167020\3759478942\FeatherMod.dll">
-            <Private>False</Private>
-        </Reference> -->
-        <Reference Include="$(DuckovPath)$(SubPath)\..\Mods\FeatherMod\FeatherMod.dll">
-            <Private>False</Private>
-        </Reference>
-        <Reference Include="$(DuckovPath)\..\..\workshop\content\3167020\3595729494\ModSetting.dll">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
     <ItemGroup>
         <Compile Remove="Resources\**" />
         <EmbeddedResource Remove="Resources\**" />
@@ -88,10 +12,6 @@
         <Compile Remove="Tests\**" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1">
             <Private>False</Private>
         </PackageReference>
@@ -118,5 +38,8 @@
         <DoNotPublicize Include="TeamSoda.Duckov.Core:UIInputManager.OnCancel" />
         <DoNotPublicize Include="Plugins:InputIndicator.OnAfterRefresh" />
         <DoNotPublicize Include="ItemStatsSystem:ItemStatsSystem.Items.Slot.onSlotContentChanged" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\YoutubeExplode\YoutubeExplode\YoutubeExplode.csproj" />
     </ItemGroup>
 </Project>
