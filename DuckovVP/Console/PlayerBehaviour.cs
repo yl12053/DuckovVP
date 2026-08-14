@@ -103,6 +103,8 @@ public class PlayerBehaviour: MiniGameBehaviour
 
     private long timeBeforeStop = -1;
 
+    private volatile bool isSafe = false;
+    
     private float _vol = 1f;
     private float volumeMultiplier
     {
@@ -226,14 +228,14 @@ public class PlayerBehaviour: MiniGameBehaviour
             needsUpdate = false;
         }
 
-        if (mediaPlayer != null && IndicatorTransform != null)
+        if (mediaPlayer != null && !mediaPlayer.IsDisposed && isSafe && IndicatorTransform != null)
         {
             var oldpos = IndicatorTransform.localPosition;
             oldpos.x = 341.6f * mediaPlayer.Position - 170.8f;
             IndicatorTransform.localPosition = oldpos;
         }
 
-        if (mediaPlayer != null && parsed)
+        if (mediaPlayer != null && !mediaPlayer.IsDisposed && parsed)
         {
             isAudio = mediaPlayer.VideoTrackCount == 0;
             if (isAudio != oldIsAudio) executionQueue.Enqueue(() =>
@@ -751,6 +753,7 @@ public class PlayerBehaviour: MiniGameBehaviour
             };
             mediaPlayer.EncounteredError += (sender, events) =>
             {
+                isSafe = false;
                 if (_parser != null && retry > 0)
                 {
                     retry -= 1;
@@ -766,6 +769,7 @@ public class PlayerBehaviour: MiniGameBehaviour
             };
             mediaPlayer.Playing += (sender, events) =>
             {
+                isSafe = true;
                 if (timeBeforeStop >= 0) executionQueue.Enqueue(() => mediaPlayer.Time = timeBeforeStop);
                 timeBeforeStop = -1;
                 retry = 3;
@@ -878,7 +882,7 @@ public class PlayerBehaviour: MiniGameBehaviour
         }
         ModBehaviour.Instance.Enqueue(async UniTask () =>
         {
-            if (mediaPlayer == null) return;
+            if (mediaPlayer == null || mediaPlayer.IsDisposed) return;
             if (media == null) return;
             _needDoublePause = 1;
             mediaPlayer.Media = media;
@@ -945,7 +949,7 @@ public class PlayerBehaviour: MiniGameBehaviour
         
         ModBehaviour.Instance.Enqueue(async UniTask () =>
         {
-            if (mediaPlayer != null)
+            if (mediaPlayer != null && !mediaPlayer.IsDisposed)
             {
                 if (mediaPlayer.IsPlaying)
                 {
@@ -953,8 +957,9 @@ public class PlayerBehaviour: MiniGameBehaviour
                 }
                 
                 mediaPlayer.Dispose();
-                mediaPlayer = null;
             }
+
+            mediaPlayer = null;
             
             if (media != null)
             {
@@ -1065,7 +1070,7 @@ public class PlayerBehaviour: MiniGameBehaviour
                 }
                 if (e.keyCode == cfg.SkipForward)
                 {
-                    if (mediaPlayer != null && mediaPlayer.IsSeekable && mediaPlayer.Length != 0)
+                    if (mediaPlayer != null && !mediaPlayer.IsDisposed && mediaPlayer.IsSeekable && mediaPlayer.Length != 0)
                     {
                         mediaPlayer.Time += 5000;
                         _ctsFadeOutBL?.Cancel();
@@ -1079,7 +1084,7 @@ public class PlayerBehaviour: MiniGameBehaviour
                 }
                 if (e.keyCode == cfg.SkipBackward)
                 {
-                    if (mediaPlayer != null && mediaPlayer.IsSeekable && mediaPlayer.Length != 0)
+                    if (mediaPlayer != null && !mediaPlayer.IsDisposed && mediaPlayer.IsSeekable && mediaPlayer.Length != 0)
                     {
                         mediaPlayer.Time -= 5000;
                         _ctsFadeOutBL?.Cancel();
@@ -1093,12 +1098,12 @@ public class PlayerBehaviour: MiniGameBehaviour
                 }
                 if (e.keyCode == cfg.Pause)
                 {
-                    mediaPlayer?.Pause();
+                    if (!mediaPlayer?.IsDisposed ?? false) mediaPlayer?.Pause();
                     return;
                 }
                 if (e.keyCode == cfg.ToStart)
                 {
-                    mediaPlayer?.Pause();
+                    if (!mediaPlayer?.IsDisposed ?? false) mediaPlayer?.Pause();
                     Replay();
                     return;
                 }
