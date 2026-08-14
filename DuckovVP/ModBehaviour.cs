@@ -111,7 +111,7 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
 
             if (vlc == null)
             {
-                vlc = new LibVLC("--verbose=2", "--aout=amem", "--vout=vmem");
+                vlc = new LibVLC("--verbose=2", "--aout=amem", "--vout=vmem", "--audio-desync=0");
                 vlc.Log += (sender, args) => { Debug.Log(args.FormattedLog); };
             }
         }).AsTask().GetAwaiter().GetResult();

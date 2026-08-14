@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web;
 using Cysharp.Threading.Tasks;
@@ -22,21 +23,17 @@ public class YoutubeParser: IParser
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
         {
-            Debug.Log($"YT: Not a valid URL: {url}");
             return false;
         }
 
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
         {
-            Debug.Log($"YT: Scheme is {uri.Scheme}: {url}");
             return false;
         }
 
         var host = uri.Host;
-        Debug.Log($"YT: Host is ${host}: {url}");
 
-        return host.Equals("www.youtube.com", StringComparison.OrdinalIgnoreCase)
-               || host.Equals("music.youtube.com", StringComparison.OrdinalIgnoreCase);
+        return host.EndsWith("youtube.com", StringComparison.OrdinalIgnoreCase) || host.Equals("youtu.be", StringComparison.OrdinalIgnoreCase);
     }
 
     public bool IsValid(string url)
@@ -47,13 +44,21 @@ public class YoutubeParser: IParser
             return false;
         }
 
+        if (uri.Host.Equals("youtu.be", StringComparison.OrdinalIgnoreCase))
+        {
+            var abs = uri.AbsolutePath;
+            return Regex.IsMatch(abs, @"^/[a-zA-Z0-9_-]{11}");
+        }
+
         if (!uri.AbsolutePath.Equals("/watch"))
         {
             return false;
         }
 
         var queryParams = HttpUtility.ParseQueryString(uri.Query);
-        return !string.IsNullOrEmpty(queryParams["v"]);
+        var v = queryParams["v"];
+        if (string.IsNullOrEmpty(v)) return false;
+        return Regex.IsMatch(v, @"^[a-zA-Z0-9_-]{11}");
     }
 
     public async UniTask<string[]> Info(string url, CancellationToken token)

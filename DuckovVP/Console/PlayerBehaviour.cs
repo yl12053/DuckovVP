@@ -92,12 +92,16 @@ public class PlayerBehaviour: MiniGameBehaviour
 
     private volatile bool isDone = false;
 
+    private volatile int retry = 3;
+    
     private CancellationTokenSource? _fadeCts;
     private CancellationTokenSource? _fadeCtsMus;
 
     private bool isSwitching = false;
 
     private bool _wasPaused;
+
+    private long timeBeforeStop = -1;
 
     private float _vol = 1f;
     private float volumeMultiplier
@@ -674,18 +678,26 @@ public class PlayerBehaviour: MiniGameBehaviour
             media = new Media(ModBehaviour.vlc, new Uri(_parser != null ? parserResult[0] : currentPlay).AbsoluteUri, FromType.FromLocation);
             if (_parser != null)
             {
+                _parser.OnMediaCreate(media, parserResult, currentPlay);
+                if (!string.IsNullOrEmpty(parserResult[1]))
+                {
+                    media.AddSlave(MediaSlaveType.Audio, 4, new Uri(parserResult[1]).AbsoluteUri);
+                }
                 async UniTask Task2(CancellationToken ct)
                 {
                     if (_parser == null) return;
                     parserMisc = await _parser.Info(currentPlay, ct);
-                    TextName.text = string.IsNullOrEmpty(parserMisc[0]) ? "Unnamed CD" : parserMisc[0];;
-                    TextName.Restart();
-                    TextArtist.text = string.IsNullOrEmpty(parserMisc[1]) ? "Unknown Artist" : parserMisc[1];
-                    TextArtist.Restart();
-                    await Task(parserMisc[2], ct);
+                    executionQueue.Enqueue(() =>
+                    {
+                        TextName.text = string.IsNullOrEmpty(parserMisc[0]) ? "Unnamed CD" : parserMisc[0];;
+                        TextName.Restart();
+                        TextArtist.text = string.IsNullOrEmpty(parserMisc[1]) ? "Unknown Artist" : parserMisc[1];
+                        TextArtist.Restart();
+                        StartCoroutine(Task(parserMisc[2], ct).ToCoroutine());
+                    });
                 }
 
-                StartCoroutine(Task2(_ct).ToCoroutine());
+                executionQueue.Enqueue(() => StartCoroutine(Task2(_ct).ToCoroutine()));
             }
             else
             {
@@ -724,10 +736,6 @@ public class PlayerBehaviour: MiniGameBehaviour
             }
             mediaPlayer = new MediaPlayer(ModBehaviour.vlc);
             mediaPlayer.Media = media;
-            if (_parser != null && !string.IsNullOrEmpty(parserResult[1]))
-            {
-                mediaPlayer.AddSlave(MediaSlaveType.Audio, new Uri(parserResult[1]).AbsoluteUri, true);
-            }
             mediaPlayer.SetVideoCallbacks(Lock, null, Display);
             mediaPlayer.SetVideoFormatCallbacks(fmtDelegate, VideoCleanup);
             mediaPlayer.SetAudioFormat("S16N", 44100, 2);
@@ -743,6 +751,13 @@ public class PlayerBehaviour: MiniGameBehaviour
             };
             mediaPlayer.EncounteredError += (sender, events) =>
             {
+                if (_parser != null && retry > 0)
+                {
+                    retry -= 1;
+                    timeBeforeStop = mediaPlayer.Time;
+                    executionQueue.Enqueue(InitializeMedia);
+                    return;
+                }
                 executionQueue.Enqueue(() =>
                 {
                     isPlaySuccess = false;
@@ -751,6 +766,9 @@ public class PlayerBehaviour: MiniGameBehaviour
             };
             mediaPlayer.Playing += (sender, events) =>
             {
+                if (timeBeforeStop >= 0) executionQueue.Enqueue(() => mediaPlayer.Time = timeBeforeStop);
+                timeBeforeStop = -1;
+                retry = 3;
                 if (!parsed)
                 {
                     isAudio = mediaPlayer.VideoTrackCount == 0;
@@ -1047,7 +1065,7 @@ public class PlayerBehaviour: MiniGameBehaviour
                 }
                 if (e.keyCode == cfg.SkipForward)
                 {
-                    if (mediaPlayer != null)
+                    if (mediaPlayer != null && mediaPlayer.IsSeekable && mediaPlayer.Length != 0)
                     {
                         mediaPlayer.Time += 5000;
                         _ctsFadeOutBL?.Cancel();
@@ -1061,7 +1079,7 @@ public class PlayerBehaviour: MiniGameBehaviour
                 }
                 if (e.keyCode == cfg.SkipBackward)
                 {
-                    if (mediaPlayer != null)
+                    if (mediaPlayer != null && mediaPlayer.IsSeekable && mediaPlayer.Length != 0)
                     {
                         mediaPlayer.Time -= 5000;
                         _ctsFadeOutBL?.Cancel();

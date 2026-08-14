@@ -6,7 +6,6 @@ using Cysharp.Threading.Tasks;
 using Duckov;
 using Duckov.UI;
 using Duckov.UI.Animations;
-using FeatherMod.Utils;
 using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using SodaCraft.Localizations;
@@ -181,6 +180,15 @@ public class BurnerView: View
                     var localPath = result.LocalPath;
                     doneButton.interactable = await Task.Run(() => File.Exists(localPath), _pathCts.Token);
                     return;
+                }
+
+                foreach (var parser in ModBehaviour.Instance.Parsers)
+                {
+                    if (parser.ShallIntercept(newPath))
+                    {
+                        doneButton.interactable = parser.IsValid(newPath);
+                        return;
+                    }
                 }
                 doneButton.interactable = true;
                 return;
