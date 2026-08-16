@@ -1,11 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using YoutubeExplode;
+using YoutubeExplode.Bridge;
+using YoutubeExplode.Exceptions;
+using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 
 namespace DuckovVP.Console.Parser;
@@ -39,26 +45,7 @@ public class YoutubeParser: IParser
     public bool IsValid(string url)
     {
         if (!ShallIntercept(url)) return false;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
-        {
-            return false;
-        }
-
-        if (uri.Host.Equals("youtu.be", StringComparison.OrdinalIgnoreCase))
-        {
-            var abs = uri.AbsolutePath;
-            return Regex.IsMatch(abs, @"^/[a-zA-Z0-9_-]{11}");
-        }
-
-        if (!uri.AbsolutePath.Equals("/watch"))
-        {
-            return false;
-        }
-
-        var queryParams = HttpUtility.ParseQueryString(uri.Query);
-        var v = queryParams["v"];
-        if (string.IsNullOrEmpty(v)) return false;
-        return Regex.IsMatch(v, @"^[a-zA-Z0-9_-]{11}");
+        return VideoId.TryParse(url) != null;
     }
 
     public async UniTask<string[]> Info(string url, CancellationToken token)
@@ -77,12 +64,69 @@ public class YoutubeParser: IParser
 
     public async UniTask<string[]> Parse(string url, CancellationToken token)
     {
-        var stream = await youtube.Videos.Streams.GetManifestAsync(url, token);
-        var video = stream.GetVideoOnlyStreams()
+        var streamClient = youtube.Videos.Streams;
+        VideoId vid = url;
+        PlayerResponse playerResponse;
+        for (var retriesRemaining = 5; ; retriesRemaining--)
+        {
+            try
+            {
+                playerResponse = await streamClient._controller.GetPlayerResponseAsync(vid, token, true);
+                break;
+            }
+            catch (Exception ex)
+                when (ex is HttpRequestException or IOException && retriesRemaining > 0) { }
+        }
+        if (!playerResponse.IsPlayable)
+        {
+            throw new VideoUnplayableException(
+                $"Video '{vid}' is unplayable. Reason: '{playerResponse.PlayabilityError}'."
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(playerResponse.HlsManifestUrl))
+        {
+            return new[] { playerResponse.HlsManifestUrl, "" };
+        }
+
+        if (!playerResponse.IsAvailable)
+        {
+            throw new VideoUnavailableException($"Video '{vid}' is not available.");
+        }
+        
+        StreamManifest manifest;
+        for (var retriesRemaining = 5; ; retriesRemaining--)
+        {
+            try
+            {
+                try
+                {
+                    var infos = await streamClient.GetStreamInfosAsync(vid, playerResponse, token);
+                    manifest = new(infos);
+                    break;
+                }
+                catch (VideoUnplayableException ex) when (ex is not VideoUnavailableException)
+                {
+                    var cipherManifest = await streamClient.ResolveCipherManifestAsync(token);
+                    
+                    var playerResponse2 = await streamClient._controller.GetPlayerResponseAsync(
+                        vid,
+                        cipherManifest.SignatureTimestamp,
+                        token
+                    );
+
+                    var infos = await streamClient.GetStreamInfosAsync(vid, playerResponse, token);
+                    manifest = new(infos);
+                }
+            }
+            catch (Exception ex)
+                when (ex is HttpRequestException or IOException && retriesRemaining > 0) { }
+        }
+        var video = manifest.GetVideoOnlyStreams()
             .OrderBy(s => s.VideoResolution.Width >= 480 ? 0 : 1)
             .ThenBy(s => (s.VideoResolution.Width >= 480 ? 1 : -1) * s.VideoResolution.Width)
             .FirstOrDefault();
-        var audio = stream.GetAudioOnlyStreams().GetWithHighestBitrate();
+        var audio = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
         return new[] { video?.Url ?? "", audio.Url};
     }
 }

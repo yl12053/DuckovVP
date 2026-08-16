@@ -13,6 +13,7 @@ public class Parsers: IDisposable
         parsers.Add(new YoutubeParser());
         parsers.Add(new BiliParser());
         parsers.Add(new NeteaseParser());
+        parsers.Add(new TwitchParser());
     }
 
     public void Dispose()

@@ -160,20 +160,4 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
     {
         return SodaCraft.Localizations.LocalizationManager.TryGetOverrideText(raw, out string name) ? name : raw;
     }
-
-    protected void OnGUI()
-    {
-        UnityEngine.Event e = UnityEngine.Event.current;
-        if (e != null && e.isKey)
-        {
-            if (e.type == UnityEngine.EventType.KeyDown && e.keyCode == KeyCode.F11)
-            {
-                if (ViewUtils.burnerView != null)
-                {
-                    ViewUtils.burnerView.gameObject.SetActive(true);
-                    ViewUtils.burnerView.Open(null);
-                }
-            }
-        }
-    }
 }

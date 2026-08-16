@@ -164,10 +164,8 @@ public class NeteaseParser: IParser
             var statusCode = headResult.StatusCode;
             if ((int)statusCode >= 300 && (int)statusCode <= 399)
             {
-                var resultUrl = headResult.Headers.Location.AbsoluteUri;
-                var urir = new Uri(resultUrl, UriKind.Absolute);
-                if (urir.AbsolutePath.Equals("/404")) throw new Exception("Barrier");
-                return new[] { resultUrl, "" };
+                if (headResult.Headers.Location.AbsolutePath.Equals("/404")) throw new Exception("Barrier");
+                return new[] { headResult.Headers.Location.AbsoluteUri, "" };
             }
             if ((int)statusCode >= 200 && (int)statusCode <= 299)
             {
