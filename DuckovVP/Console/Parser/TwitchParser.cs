@@ -64,7 +64,7 @@ public class TwitchParser: IParser
         options.Content = content;
         var req = await _client.SendAsync(options, token);
         req.EnsureSuccessStatusCode();
-        var res = await req.Content.ReadAsStringCompressAsync();
+        var res = await req.Content.ReadAsStringCompressAsync(token);
         var resData = JObject.Parse(res);
         if (isVOD)
         {
