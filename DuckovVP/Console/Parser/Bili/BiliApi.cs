@@ -193,7 +193,6 @@ public class BiliApi: IDisposable
         response.EnsureSuccessStatusCode();
         
         var resp = await response.Content.ReadAsStringCompressAsync(ct);
-        Debug.Log(resp);
         var obj = JObject.Parse(resp);
         return (JObject) obj["data"];
     }
@@ -519,8 +518,7 @@ public class BiliApi: IDisposable
                 }
                 catch (JsonReaderException)
                 {
-                    Debug.Log("Got error on parsing result. Ready to dump data");
-                    Debug.Log($"Incoming URL: {resp.RequestMessage.RequestUri}");
+                    Debug.Log($"URL: {resp.RequestMessage.RequestUri}");
                     Debug.Log(BitConverter.ToString(await resp.Content.ReadAsByteArrayAsync()));
                     throw;
                 }

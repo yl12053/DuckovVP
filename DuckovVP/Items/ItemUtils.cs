@@ -1,9 +1,6 @@
 ﻿using System.Collections.Generic;
-using Duckov.ItemBuilders;
-using Duckov.Utilities;
 using FeatherMod;
 using FeatherMod.Items;
-using FeatherMod.Register;
 using FeatherMod.Utils;
 using ItemStatsSystem;
 using UnityEngine;
@@ -12,7 +9,7 @@ namespace DuckovVP.Items;
 
 public class ItemUtils
 {
-    public static void Init()
+    public static void Init(AssetBundle bundle)
     {
         FeatherMod.ItemUtils.RegisterTag(new Identifier(ModBehaviour.MODID, "CD"),
             new TagBuilder()
@@ -26,7 +23,7 @@ public class ItemUtils
         dv.value = 2000;
         dv.quality = 5;
         dv.displayQuality = DisplayQuality.Orange;
-        dv.spritePath = "dv.png";
+        dv.spritePath = "player.png";
         dv.tags = new List<string>();
         dv.tags.Add("GamingConsole");
         dv.consts[ModBehaviour.MODID + "CustomGameCon"] = (true, false);
@@ -35,7 +32,14 @@ public class ItemUtils
             key = "cd",
             requireTags = { new Identifier(ModBehaviour.MODID, "CD").ToString() }
         });
-        FeatherMod.ItemUtils.CreateCustomItem(new Identifier(ModBehaviour.MODID, "DuckovVP"), dv);
+        var id = new Identifier(ModBehaviour.MODID, "DuckovVP");
+        var player = FeatherMod.ItemUtils.GetCustomItem(id, dv);
+        var playerIG = Object.Instantiate(bundle.LoadAsset<GameObject>("IG_DVDPlayer"));
+        playerIG.transform.Find("dvd player").localScale = new(25, 25, 25);
+        Object.DontDestroyOnLoad(playerIG);
+        player.itemGraphic = playerIG.GetComponent<ItemGraphicInfo>();
+        FeatherMod.ItemUtils.RegisterItem(id, player);
+        
 
         ItemData dvd = new ItemData();
         dvd.itemId = 214751;
@@ -45,7 +49,7 @@ public class ItemUtils
         dvd.value = 500;
         dvd.quality = 4;
         dvd.displayQuality = DisplayQuality.Purple;
-        dvd.spritePath = "dvd.png";
+        dvd.spritePath = "disk.png";
         dvd.tags = new List<string>();
         dvd.AddTags(new Identifier(ModBehaviour.MODID, "CD"));
         dvd.variables["Path"] = ("", true);

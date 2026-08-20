@@ -109,7 +109,6 @@ public class NeteaseParser: IParser
 
         if (!uri.AbsolutePath.Equals("/song"))
         {
-            Debug.Log($"NE: Not accept {uri.AbsolutePath}");
             return false;
         }
         
@@ -157,7 +156,6 @@ public class NeteaseParser: IParser
         catch (HttpRequestException exception)
         {
             Debug.LogException(exception);
-            Debug.Log("Fallback");
             var headRequest = new HttpRequestMessage(HttpMethod.Head,
                 $"https://music.163.com/song/media/outer/url?id={queryParams["id"]}.mp3");
             var headResult = await _httpClient.SendAsync(headRequest, token);
@@ -224,7 +222,6 @@ public class NeteaseParser: IParser
         catch (Exception e)
         {
             Debug.LogException(e);
-            Debug.Log("Jump to original mode");
         }
 
         var request = new HttpRequestMessage(HttpMethod.Post, "https://music.163.com/weapi/v3/song/detail?csrf_token=");
@@ -251,7 +248,6 @@ public class NeteaseParser: IParser
         var response = await _httpClient.SendAsync(request, token);
         response.EnsureSuccessStatusCode();
         var respText = await response.Content.ReadAsStringCompressAsync(token);
-        Debug.Log($"Response text = \n{respText}");
         var resp = JObject.Parse(respText);
         if (string.IsNullOrWhiteSpace(name)) name = resp?["songs"]?[0]?["name"]?.Value<string>() ?? "Unnamed CD";
         if (string.IsNullOrWhiteSpace(artist)) artist = resp?["songs"]?[0]?["ar"]?[0]?["name"]?.Value<string>() ?? "Unknown Artist";

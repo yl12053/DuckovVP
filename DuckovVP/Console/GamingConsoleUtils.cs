@@ -26,15 +26,12 @@ public static class GamingConsoleUtils
     
     public static string GetCartridgeGameID(Item item)
     {
-        var CD = item.Slots["cd"].Content;
-        Debug.Log($"CD is null? {CD == null}");
-        return new Identifier(ModBehaviour.MODID, CD == null ? "empty" : "hascd").ToString();
+        return new Identifier(ModBehaviour.MODID, item.Slots["cd"].Content == null ? "empty" : "hascd").ToString();
     }
 
     public static Item GetFakeCartridge(Item item)
     {
-        var CD = item.Slots["cd"].Content;
-        return CD == null ? EmptyItem : FilledItem;
+        return item.Slots["cd"].Content == null ? EmptyItem : FilledItem;
     }
 
     public static void Init()

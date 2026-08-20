@@ -29,7 +29,6 @@ public class BiliLive
             { "ptype", "16" }
         };
         var res = (JObject)await api.Request(false, false, token);
-        Debug.Log(res);
         return res["durl"][0]["url"].Value<string>();
     }
 

@@ -42,8 +42,6 @@ public class MixinGamingConsoleTranspiler
 
     public static void ShowReplace(GamingConsole instance)
     {
-        Debug.Log("Replace");
-        Debug.Log(instance.SelectedGame.ID);
         if (instance.SelectedGame.ID.Equals(new Identifier(ModBehaviour.MODID, "hascd").ToString()))
         {
             ViewUtils.ExtraHUD?.LocalShow();

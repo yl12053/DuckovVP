@@ -71,6 +71,18 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
     private Config? _config;
     public Config Cfg => _config ?? Config.Default;
 
+    public static AssetBundle FetchBundle()
+    {
+        return AssetBundle.LoadFromFile(
+            Path.Join(
+                Path.GetDirectoryName(
+                    Assembly.GetExecutingAssembly().Location
+                ),
+                "assets/bundle/vp_bundles"
+            )
+        );
+    }
+    
     protected override void OnAfterSetup()
     {
         base.OnAfterSetup();
@@ -111,15 +123,19 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour, IHasModid
 
             if (vlc == null)
             {
-                vlc = new LibVLC("--verbose=2", "--aout=amem", "--vout=vmem", "--audio-desync=0");
+                vlc = new LibVLC("--verbose=0", "--aout=amem", "--vout=vmem", "--audio-desync=0");
                 vlc.Log += (sender, args) => { Debug.Log(args.FormattedLog); };
             }
         }).AsTask().GetAwaiter().GetResult();
 
-        BlockUtils.Init();
+        var bundle = FetchBundle();
+        ShaderReplacer.ApplyToBundle(bundle);
         
-        ItemUtils.Init();
+        BlockUtils.Init(bundle);
+        
+        ItemUtils.Init(bundle);
         GamingConsoleUtils.Init();
+        bundle.Unload(false);
     }
 
     protected override void OnBeforeDeactivate()

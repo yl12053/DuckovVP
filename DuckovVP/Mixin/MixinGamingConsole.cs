@@ -21,7 +21,6 @@ public class MixinGamingConsole
         var console = __instance.Console;
         if (console == null) return true;
         if (!console.Constants.GetBool(ModBehaviour.MODID + "CustomGameCon", false)) return true;
-        Debug.Log("Enter Patch");
         __result = GamingConsoleUtils.GetCartridgeGameID(console);
         return false;
     }
@@ -33,7 +32,6 @@ public class MixinGamingConsole
         if (console == null) return true;
         if (!console.Constants.GetBool(ModBehaviour.MODID + "CustomGameCon", false)) return true;
         __result = GamingConsoleUtils.GetFakeCartridge(console);
-        Debug.Log($"Passed, is result null? ${__result == null}");
         return false;
     }
 
